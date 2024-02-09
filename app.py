@@ -2,7 +2,7 @@ import tensorflow as tf
 from flask import Flask, request, jsonify
 from tensorflow.keras.preprocessing import image
 import numpy as np
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import confusion_matrix
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import pickle
 
@@ -10,11 +10,7 @@ import pickle
 app = Flask(__name__)
 app.config.update(dict(
     DEBUG=True,
-    MAIL_SERVER='localhost',
-    MAIL_USE_TLS=False,
-    MAIL_USE_SSL=False,
-    MAIL_USERNAME=None,
-    MAIL_PASSWORD=None,
+
 ))
 class_labels = {0:'COVID', 1: 'NORMAL', 2:'PNEUMONIA'}
 
@@ -53,6 +49,11 @@ def generate_confusion_matrix(model, test_generator):
     # Generate a confusion matrix
     conf_matrix = confusion_matrix(y_true, y_pred.argmax(axis=1))
     return conf_matrix
+# Recreate the test generator
+test_generator = recreate_test_generator()
+
+ # Generate confusion matrix and classification report
+conf_matrix = generate_confusion_matrix(model, test_generator)
 
 @app.route('/api/predict', methods=['POST'])
 def predict():
@@ -63,6 +64,7 @@ def predict():
         return jsonify({'error': 'No selected file'})
 # Save the uploaded image temporarily
     if file :
+
         img_path = "temp/temp.jpg"  
         file.save(img_path)
 
@@ -80,10 +82,7 @@ def predict():
 
 @app.route('/api/infos', methods=['GET'])
 def get_info():
-    # Recreate the test generator
-    test_generator = recreate_test_generator()
-    # Generate confusion matrix and classification report
-    conf_matrix = generate_confusion_matrix(model, test_generator)
+   
     # Evaluate the model on the validation set
     validation_loss, validation_accuracy = model.evaluate(test_generator)
     
@@ -97,5 +96,4 @@ def get_info():
     return jsonify(validation_metrics)
     
 if __name__ == '__main__':
-    app.config['TIMEOUT'] = 360  
     app.run(debug=False, host='0.0.0.0')
